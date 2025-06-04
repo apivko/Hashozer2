@@ -106,6 +106,7 @@
           </div>
         </div>
       </div>
+      <Toast v-if="toastMessage" :message="toastMessage" :type="toastType" />
     </div>
   </div>
 </template>
@@ -113,6 +114,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getDatabase, ref as dbRef, set, get, remove, push } from 'firebase/database'
+import Toast from './Toast.vue'
 
 const db = getDatabase()
 
@@ -134,6 +136,10 @@ const selectedFlower = ref('')
 const selectedQuantity = ref(null)
 const items = ref([])
 
+// Toast state
+const toastMessage = ref('')
+const toastType = ref('success')
+
 // Load flower types
 const loadFlowerTypes = async () => {
   try {
@@ -149,7 +155,8 @@ const loadFlowerTypes = async () => {
 // Add new flower type
 const addFlowerType = async () => {
   if (!newFlower.value.name || !newFlower.value.price) {
-    alert('נא למלא את כל השדות')
+    toastMessage.value = 'נא למלא את כל השדות'
+    toastType.value = 'error'
     return
   }
 
@@ -167,9 +174,12 @@ const addFlowerType = async () => {
     
     // Reload flower types
     await loadFlowerTypes()
+    toastMessage.value = 'סוג הפרח נוסף בהצלחה!'
+    toastType.value = 'success'
   } catch (error) {
     console.error('Error adding flower type:', error)
-    alert('שגיאה בהוספת סוג פרח')
+    toastMessage.value = 'שגיאה בהוספת סוג פרח'
+    toastType.value = 'error'
   }
 }
 
@@ -182,9 +192,12 @@ const deleteFlowerType = async (name) => {
   try {
     await remove(dbRef(db, `flower_types/${name}`))
     await loadFlowerTypes()
+    toastMessage.value = 'סוג הפרח נמחק בהצלחה!'
+    toastType.value = 'success'
   } catch (error) {
     console.error('Error deleting flower type:', error)
-    alert('שגיאה במחיקת סוג פרח')
+    toastMessage.value = 'שגיאה במחיקת סוג פרח'
+    toastType.value = 'error'
   }
 }
 
@@ -223,7 +236,8 @@ const removeIngredient = (index) => {
 // Submit new item
 const submitItem = async () => {
   if (!itemData.value.name || !itemData.value.price) {
-    alert('נא למלא את כל השדות')
+    toastMessage.value = 'נא למלא את כל השדות'
+    toastType.value = 'error'
     return
   }
 
@@ -240,10 +254,12 @@ const submitItem = async () => {
     
     // Reload items
     await loadItems()
-    alert('הפריט נשמר בהצלחה!')
+    toastMessage.value = 'הפריט נשמר בהצלחה!'
+    toastType.value = 'success'
   } catch (error) {
     console.error('Error saving item:', error)
-    alert('שגיאה בשמירת הפריט')
+    toastMessage.value = 'שגיאה בשמירת הפריט'
+    toastType.value = 'error'
   }
 }
 
@@ -256,10 +272,12 @@ const deleteItem = async (itemId) => {
   try {
     await remove(dbRef(db, `flower_items/${itemId}`))
     await loadItems()
-    alert('הפריט נמחק בהצלחה!')
+    toastMessage.value = 'הפריט נמחק בהצלחה!'
+    toastType.value = 'success'
   } catch (error) {
     console.error('Error deleting item:', error)
-    alert('שגיאה במחיקת הפריט')
+    toastMessage.value = 'שגיאה במחיקת הפריט'
+    toastType.value = 'error'
   }
 }
 

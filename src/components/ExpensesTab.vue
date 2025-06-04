@@ -31,12 +31,14 @@
         </div>
       </div>
     </div>
+    <Toast v-if="toastMessage" :message="toastMessage" :type="toastType" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { getDatabase, ref as dbRef, push, get, remove, query, orderByChild, startAt } from 'firebase/database'
+import Toast from './Toast.vue'
 
 const db = getDatabase()
 
@@ -47,6 +49,8 @@ const expenseData = ref({
 })
 
 const expenses = ref([])
+const toastMessage = ref('')
+const toastType = ref('success')
 
 // Get start of current week
 const getStartOfWeek = () => {
@@ -110,7 +114,8 @@ const totalWeeklyExpenses = computed(() => {
 // Submit expense
 const submitExpense = async () => {
   if (!expenseData.value.name || !expenseData.value.amount) {
-    alert('נא למלא את כל השדות')
+    toastMessage.value = 'נא למלא את כל השדות'
+    toastType.value = 'error'
     return
   }
 
@@ -129,10 +134,12 @@ const submitExpense = async () => {
     
     // Reload expenses
     await loadExpenses()
-    alert('ההוצאה נשמרה בהצלחה!')
+    toastMessage.value = 'ההוצאה נשמרה בהצלחה!'
+    toastType.value = 'success'
   } catch (error) {
     console.error('Error saving expense:', error)
-    alert('שגיאה בשמירת ההוצאה')
+    toastMessage.value = 'שגיאה בשמירת ההוצאה'
+    toastType.value = 'error'
   }
 }
 
@@ -145,10 +152,12 @@ const deleteExpense = async (expenseId) => {
   try {
     await remove(dbRef(db, `expenses/${expenseId}`))
     await loadExpenses()
-    alert('ההוצאה נמחקה בהצלחה!')
+    toastMessage.value = 'ההוצאה נמחקה בהצלחה!'
+    toastType.value = 'success'
   } catch (error) {
     console.error('Error deleting expense:', error)
-    alert('שגיאה במחיקת ההוצאה')
+    toastMessage.value = 'שגיאה במחיקת ההוצאה'
+    toastType.value = 'error'
   }
 }
 

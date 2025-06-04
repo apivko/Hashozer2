@@ -2,15 +2,21 @@
 <template>
   <div class="existing-orders-tab">
     <h2>הזמנות קיימות</h2>
-    <div v-if="isCalendarReady">
+    <div v-show="isCalendarReady">
       <FullCalendar 
+        :key="calendarKey"
         :options="calendarOptions"
         class="calendar-container"
       />
     </div>
-    <div v-else class="loading">
-      טוען לוח שנה...
+    <div v-show="!isCalendarReady" class="loading">
+      <div class="loading-spinner"></div>
     </div>
+    <OrderDetailsModal 
+      :orderDetails="selectedOrderDetails" 
+      :isVisible="isModalVisible" 
+      @close="isModalVisible = false" 
+    />
   </div>
 </template>
 
@@ -21,8 +27,17 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import allLocales from '@fullcalendar/core/locales-all'
+import { getDatabase, ref as dbRef, get } from 'firebase/database'
+import OrderDetailsModal from './OrderDetailsModal.vue'
+import { mockOrders } from '../mocks/mockOrders'
 
 const isCalendarReady = ref(false)
+const calendarKey = ref(0) // force re-render by changing this key
+
+const db = getDatabase();
+
+const isModalVisible = ref(false);
+const selectedOrderDetails = ref({});
 
 const calendarOptions = ref({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
@@ -35,7 +50,7 @@ const calendarOptions = ref({
   firstDay: 0,
   slotMinTime: '07:00:00',
   slotMaxTime: '21:00:00',
-  height: 'auto',
+  height: '100%',
   aspectRatio: 1.35,
   expandRows: true,
   stickyHeaderDates: true,
@@ -49,10 +64,73 @@ const calendarOptions = ref({
   },
   handleWindowResize: true,
   eventDisplay: 'block',
-  allDaySlot: false
+  allDaySlot: false,
+  events: [
+    
+  ],
+  dayHeaderContent: function(arg) {
+    // Remove the prefix "יום" from the day name
+    return arg.text.replace(/^יום\s/, '');
+  },
+  eventClick: function(info) {
+    const order = calendarOptions.value.events.find(event => {
+      const eventStart = new Date(event.start);
+      const infoStart = new Date(info.event.startStr);
+      return eventStart.getTime() === infoStart.getTime();
+    });
+    if (order) {
+      selectedOrderDetails.value = order;
+      isModalVisible.value = true;
+    }
+  },
+  hiddenDays: [6]
 })
 
+// Function to load orders from Firebase and format them as events
+const loadOrdersAsEvents = async () => {
+  try {
+    const ordersSnapshot = await get(dbRef(db, 'orders'));
+    if (ordersSnapshot.exists()) {
+      const orders = Object.entries(ordersSnapshot.val()).map(([id, order]) => {
+        const start = new Date(order.deliveryDate);
+        const end = new Date(start.getTime() + 30 * 60000); // 0.5 hour later
+        const title = order.items.length > 0 ? order.items[0].name : 'No Title';
+        return {
+          title,
+          start: start.toISOString(),
+          end: end.toISOString()
+        };
+      });
+      calendarOptions.value.events = orders;
+    } 
+  } catch (error) {
+    console.error('Error loading orders:', error);
+    calendarOptions.value.events = mockOrders;
+
+  }
+};
+
+function refreshCalendar() {
+  calendarKey.value++
+  setTimeout(() => {
+    // Simulate click on the previous button
+    const prevButton = document.querySelector('.fc-prev-button.fc-button.fc-button-primary');
+    if (prevButton) prevButton.click();
+
+    // Simulate click on the today button after a short delay
+    setTimeout(() => {
+      const todayButton = document.querySelector('.fc-today-button.fc-button.fc-button-primary');
+      if (todayButton) todayButton.click();
+            
+    }, 500); // Adjust delay as needed
+  }, 0); // Initial delay before clicking prev button
+  setTimeout(() => {
+        isCalendarReady.value = true;
+      }, 3000);
+}
+
 onMounted(async () => {
+  isCalendarReady.value = false
   try {
     console.log('Starting calendar initialization...')
     // Ensure calendar options are properly initialized
@@ -70,16 +148,28 @@ onMounted(async () => {
     
     console.log('Calendar options:', calendarOptions.value)
     
+    await loadOrdersAsEvents();
+
     // Set ready state after a brief delay to ensure DOM is ready
     setTimeout(() => {
       isCalendarReady.value = true
       console.log('Calendar ready state set to:', isCalendarReady.value)
-    }, 2000)
+      refreshCalendar()
+      // Set table display property to 'table'
+      const tables = document.querySelectorAll('table');
+      tables.forEach(table => {
+        table.style.setProperty('display', 'table', 'important');
+      });
+    }, 1000)
+
+    
   } catch (error) {
     console.error('Error initializing calendar:', error)
     isCalendarReady.value = false
   }
 })
+
+console.log('Calendar options before rendering:', calendarOptions.value)
 </script>
 
 <style scoped>
@@ -91,6 +181,10 @@ onMounted(async () => {
   flex-direction: column;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
+  margin: 0 auto;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .loading {
@@ -144,6 +238,11 @@ onMounted(async () => {
 :deep(.fc-col-header-cell) {
   background-color: #f7fafc;
   padding: 8px 0;
+  margin: 0 !important;
+}
+
+:deep(.fc-timegrid-slots table) {
+  display: table !important;
 }
 
 :deep(.fc-timegrid-axis) {
@@ -162,7 +261,7 @@ onMounted(async () => {
 @media screen and (max-width: 768px) {
   .existing-orders-tab {
     padding: 10px;
-    height: calc(100vh - 60px);
+    height: 100%;
   }
 
   .calendar-container {
@@ -194,6 +293,57 @@ onMounted(async () => {
 
   :deep(.fc-timegrid-slot-label) {
     font-size: 0.75rem;
+  }
+
+  :deep(.fc-scrollgrid), :deep(.fc-scrollgrid-liquid) {
+    display: table !important;
+  }
+}
+
+.fc-direction-rtl .fc-toolbar > * > :not(:first-child) {
+  margin-right: 0 !important;
+}
+
+:deep(.fc-header-toolbar) {
+  flex-direction: row !important;
+}
+
+:deep(.fc-timeGridWeek-button.fc-button.fc-button-primary.fc-button-active) {
+  display: none !important;
+}
+
+:deep(.fc-toolbar-chunk) {
+  display: flex;
+}
+
+@keyframes spinner {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+  border: 8px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #4a5568;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spinner 1s linear infinite;
+  position: absolute;
+  top: 40%;
+  transform: translate(-50%, -50%);
+}
+
+:deep(.fc-scrollgrid), :deep(.fc-scrollgrid-liquid) {
+  margin: 0 !important;
+}
+
+:deep(.fc-col-header) {
+  margin: 0 !important;
+}
+
+@media (max-width: 600px) {
+  table {
+    display: table !important;
   }
 }
 </style> 

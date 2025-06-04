@@ -5,7 +5,9 @@
     <h1>השוזר - ניהול</h1>
   </div>
 
-  <div class="container" :class="{ show: !showSplash }">
+  <LoginForm v-if="!isAuthenticated" />
+
+  <div class="container" v-if="isAuthenticated" :class="{ show: !showSplash }">
     <div class="header-container">
       <img src="/logo.png" alt="השוזר">
       <h1>ניהול הזמנות - השוזר</h1>
@@ -62,6 +64,8 @@ import ExpensesTab from './components/ExpensesTab.vue'
 import ReportsTab from './components/ReportsTab.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ExistingOrdersTab from './components/ExistingOrdersTab.vue'
+import LoginForm from './components/LoginForm.vue'
+import { onAuthStateChanged } from 'firebase/auth'
 
 // Firebase configuration
 const firebaseConfig = {
@@ -84,6 +88,7 @@ const showSplash = ref(true)
 const splashFading = ref(false)
 const showSettings = ref(false)
 const currentTab = ref('orders')
+const isAuthenticated = ref(false)
 
 const tabs = [
   { id: 'orders', name: 'הזמנות חדשות' },
@@ -105,6 +110,11 @@ onMounted(() => {
       showSplash.value = false
     }, 500)
   }, 1500)
+})
+
+// Watch for authentication state changes
+onAuthStateChanged(auth, (user) => {
+  isAuthenticated.value = !!user
 })
 </script>
 

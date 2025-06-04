@@ -19,12 +19,14 @@
     <button @click="login" :disabled="loading">
       {{ loading ? 'מתחבר...' : 'כניסה' }}
     </button>
+    <Toast v-if="toastMessage" :message="toastMessage" :type="toastType" />
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
+import Toast from './Toast.vue'
 
 const auth = getAuth()
 
@@ -32,11 +34,14 @@ const auth = getAuth()
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
+const toastMessage = ref('')
+const toastType = ref('success')
 
 // Login function
 const login = async () => {
   if (!email.value || !password.value) {
-    alert('נא למלא את כל השדות')
+    toastMessage.value = 'נא למלא את כל השדות'
+    toastType.value = 'error'
     return
   }
 
@@ -44,9 +49,12 @@ const login = async () => {
 
   try {
     await signInWithEmailAndPassword(auth, email.value, password.value)
+    toastMessage.value = 'התחברות הצליחה!'
+    toastType.value = 'success'
   } catch (error) {
     console.error('Login error:', error)
-    alert('שגיאה בהתחברות: ' + error.message)
+    toastMessage.value = 'שגיאה בהתחברות: ' + error.message
+    toastType.value = 'error'
   } finally {
     loading.value = false
   }
