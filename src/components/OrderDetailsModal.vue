@@ -192,6 +192,7 @@ const deleteOrder = async () => {
 
 .modal-header {
   display: flex;
+  flex-direction: row-reverse;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
@@ -208,6 +209,7 @@ const deleteOrder = async () => {
 .delete-order-button {
   background-color: #e53e3e;
   color: white;
+  width: 64px !important;
   border: none;
   border-radius: 4px;
   padding: 8px 12px;
