@@ -17,6 +17,7 @@
       :isVisible="isModalVisible" 
       @close="isModalVisible = false" 
     />
+    <Toast v-if="toastMessage" :message="toastMessage" :type="toastType" />
   </div>
 </template>
 
@@ -29,7 +30,7 @@ import interactionPlugin from '@fullcalendar/interaction'
 import allLocales from '@fullcalendar/core/locales-all'
 import { getDatabase, ref as dbRef, get } from 'firebase/database'
 import OrderDetailsModal from './OrderDetailsModal.vue'
-import { mockOrders } from '../mocks/mockOrders'
+import Toast from './Toast.vue'
 
 const isCalendarReady = ref(false)
 const calendarKey = ref(0) // force re-render by changing this key
@@ -41,6 +42,10 @@ const selectedOrderDetails = ref({});
 
 // Add reactive variable to track days with orders
 const daysWithOrders = ref(new Set());
+
+// Toast state
+const toastMessage = ref('');
+const toastType = ref('error');
 
 const calendarOptions = ref({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
@@ -143,32 +148,8 @@ const loadOrdersAsEvents = async () => {
     } 
   } catch (error) {
     console.error('Error loading orders:', error);
-    // For mock orders, include all details as well
-    const mockEvents = mockOrders.map(order => ({
-      id: order.id,
-      title: order.items.length > 0 ? order.items[0].itemName : 'No Title',
-      start: order.start,
-      end: order.end,
-      customerName: order.customerName,
-      phoneNumber: order.phoneNumber,
-      address: order.address,
-      items: order.items,
-      totalAmount: order.totalAmount,
-      status: order.status
-    }));
-    calendarOptions.value.events = mockEvents;
-    
-    // Also populate daysWithOrders for mock orders
-    daysWithOrders.value.clear();
-    mockEvents.forEach(order => {
-      const orderDate = new Date(order.start);
-      daysWithOrders.value.add(orderDate.toDateString());
-    });
-    
-    // Update header styling after a short delay
-    setTimeout(() => {
-      // updateHeaderStyling(); // Removed as per edit hint
-    }, 500);
+    toastMessage.value = 'משהו השתבש';
+    toastType.value = 'error';
   }
 };
 
