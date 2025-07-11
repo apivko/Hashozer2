@@ -111,31 +111,39 @@ const loadOrdersAsEvents = async () => {
     const ordersSnapshot = await get(dbRef(db, 'orders'));
     if (ordersSnapshot.exists()) {
       const orders = Object.entries(ordersSnapshot.val()).map(([id, order]) => {
+        // Validate order data structure
+        if (!order || !order.deliveryDate) {
+          console.warn('Invalid order data:', { id, order });
+          return null;
+        }
+        
         const start = new Date(order.deliveryDate);
         const end = new Date(start.getTime() + 30 * 60000); // 0.5 hour later
-        const title = order.items.length > 0 ? order.items[0].name : 'No Title';
+        const title = order.items && order.items.length > 0 ? order.items[0].name : 'No Title';
         return {
           id,
           title,
           start: start.toISOString(),
           end: end.toISOString(),
           // Include all order details for the modal
-          customerName: order.customerName,
-          customerPhone: order.customerPhone,
-          customerAddress: order.customerAddress,
-          items: order.items,
-          totalPrice: order.totalPrice,
+          customerName: order.customerName || '',
+          customerPhone: order.customerPhone || '',
+          customerAddress: order.customerAddress || '',
+          items: order.items || [],
+          totalPrice: order.totalPrice || 0,
           deliveryDate: order.deliveryDate,
-          createdAt: order.createdAt
+          createdAt: order.createdAt || new Date().toISOString()
         };
-      });
+      }).filter(order => order !== null); // Filter out invalid orders
       calendarOptions.value.events = orders;
       
       // Populate daysWithOrders set
       daysWithOrders.value.clear();
       orders.forEach(order => {
-        const orderDate = new Date(order.start);
-        daysWithOrders.value.add(orderDate.toDateString());
+        if (order.start) {
+          const orderDate = new Date(order.start);
+          daysWithOrders.value.add(orderDate.toDateString());
+        }
       });
       
       // Force calendar refresh to update headers
