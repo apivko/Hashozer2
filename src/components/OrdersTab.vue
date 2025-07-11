@@ -159,12 +159,12 @@ const searchCustomers = () => {
   
   const customerNameLower = orderData.value.customerName.toLowerCase()
   filteredCustomers.value = customers.value.filter(customer =>
-    customer.name.toLowerCase().includes(customerNameLower)
+    customer.name && customer.name.toLowerCase().includes(customerNameLower)
   )
 
   // Add orders-based suggestions
   const orderSuggestions = orders.value.filter(order =>
-    order.customerName.toLowerCase().includes(customerNameLower)
+    order.customerName && order.customerName.toLowerCase().includes(customerNameLower)
   ).map(order => ({
     name: order.customerName,
     phone: order.customerPhone,

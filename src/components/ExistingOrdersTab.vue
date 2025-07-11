@@ -15,7 +15,8 @@
     <OrderDetailsModal 
       :orderDetails="selectedOrderDetails" 
       :isVisible="isModalVisible" 
-      @close="isModalVisible = false" 
+      @close="isModalVisible = false"
+      @orderDeleted="handleOrderDeleted"
     />
     <Toast v-if="toastMessage" :message="toastMessage" :type="toastType" />
   </div>
@@ -159,6 +160,14 @@ const loadOrdersAsEvents = async () => {
     toastMessage.value = 'משהו השתבש';
     toastType.value = 'error';
   }
+};
+
+// Handle order deletion
+const handleOrderDeleted = async (orderId) => {
+  // Refresh the calendar to reflect the deletion
+  await loadOrdersAsEvents();
+  toastMessage.value = 'ההזמנה נמחקה בהצלחה';
+  toastType.value = 'success';
 };
 
 function refreshCalendar() {

@@ -1,7 +1,12 @@
 <template>
   <div v-if="isVisible" class="modal-overlay" @click.self="closeModal">
     <div class="modal-content">
-      <h3>פרטי הזמנה</h3>
+      <div class="modal-header">
+        <button @click="deleteOrder" class="delete-order-button" title="מחק הזמנה">
+          <i class="fas fa-trash"></i>
+        </button>
+        <h3>פרטי הזמנה</h3>
+      </div>
       
       <div class="order-details">
         <div class="detail-row">
@@ -58,14 +63,14 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { getDatabase, ref as dbRef, get } from 'firebase/database';
+import { getDatabase, ref as dbRef, get, remove } from 'firebase/database';
 
 const props = defineProps({
   orderDetails: Object,
   isVisible: Boolean
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'orderDeleted']);
 
 const db = getDatabase();
 const flowerItems = ref([]);
@@ -138,6 +143,26 @@ onMounted(() => {
     loadFlowerItems();
   }
 });
+
+const deleteOrder = async () => {
+  if (!props.orderDetails || !props.orderDetails.id) {
+    return;
+  }
+  
+  // Show confirmation dialog
+  if (!confirm('האם אתה בטוח שברצונך למחוק הזמנה זו?')) {
+    return;
+  }
+  
+  try {
+    await remove(dbRef(db, `orders/${props.orderDetails.id}`));
+    emit('orderDeleted', props.orderDetails.id);
+    emit('close');
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    alert('שגיאה במחיקת ההזמנה');
+  }
+};
 </script>
 
 <style scoped>
@@ -163,6 +188,43 @@ onMounted(() => {
   width: 100%;
   direction: rtl;
   text-align: right;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #2d3748;
+  font-size: 1.2em;
+}
+
+.delete-order-button {
+  background-color: #e53e3e;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em;
+}
+
+.delete-order-button:hover {
+  background-color: #c53030;
+}
+
+.delete-order-button i {
+  margin-right: 5px;
 }
 
 .order-details {
