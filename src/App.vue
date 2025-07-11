@@ -5,9 +5,9 @@
     <h1>השוזר - ניהול</h1>
   </div>
 
-  <LoginForm v-if="!isAuthenticated" />
+  <LoginForm v-if="false" />
 
-  <div class="container" v-if="isAuthenticated" :class="{ show: !showSplash }">
+  <div class="container" v-if="true" :class="{ show: !showSplash }">
     <div class="header-container">
       <img src="/logo.png" alt="השוזר">
       <h1>ניהול הזמנות - השוזר</h1>
@@ -113,9 +113,9 @@ onMounted(() => {
 })
 
 // Watch for authentication state changes
-onAuthStateChanged(auth, (user) => {
-  isAuthenticated.value = !!user
-})
+// onAuthStateChanged(auth, (user) => {
+//   isAuthenticated.value = !!user
+// })
 </script>
 
 <style>

@@ -39,6 +39,9 @@ const db = getDatabase();
 const isModalVisible = ref(false);
 const selectedOrderDetails = ref({});
 
+// Add reactive variable to track days with orders
+const daysWithOrders = ref(new Set());
+
 const calendarOptions = ref({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
   initialView: 'timeGridWeek',
@@ -70,7 +73,18 @@ const calendarOptions = ref({
   ],
   dayHeaderContent: function(arg) {
     // Remove the prefix "יום" from the day name
-    return arg.text.replace(/^יום\s/, '');
+    const dayName = arg.text.replace(/^יום\s/, '');
+    
+    // Check if this day has orders
+    const hasOrders = daysWithOrders.value.has(arg.date.toDateString());
+    
+    // Create indicator element if day has orders
+    const indicator = hasOrders ? '<span class="day-indicator">●</span>' : '';
+    
+    // Return HTML with day name and indicator
+    return {
+      html: `${indicator}${dayName}`
+    };
   },
   eventClick: function(info) {
     const order = calendarOptions.value.events.find(event => {
@@ -96,17 +110,65 @@ const loadOrdersAsEvents = async () => {
         const end = new Date(start.getTime() + 30 * 60000); // 0.5 hour later
         const title = order.items.length > 0 ? order.items[0].name : 'No Title';
         return {
+          id,
           title,
           start: start.toISOString(),
-          end: end.toISOString()
+          end: end.toISOString(),
+          // Include all order details for the modal
+          customerName: order.customerName,
+          customerPhone: order.customerPhone,
+          customerAddress: order.customerAddress,
+          items: order.items,
+          totalPrice: order.totalPrice,
+          deliveryDate: order.deliveryDate,
+          createdAt: order.createdAt
         };
       });
       calendarOptions.value.events = orders;
+      
+      // Populate daysWithOrders set
+      daysWithOrders.value.clear();
+      orders.forEach(order => {
+        const orderDate = new Date(order.start);
+        daysWithOrders.value.add(orderDate.toDateString());
+      });
+      
+      // Force calendar refresh to update headers
+      calendarKey.value++;
+      
+      // Update header styling after a short delay
+      setTimeout(() => {
+        // updateHeaderStyling(); // Removed as per edit hint
+      }, 500);
     } 
   } catch (error) {
     console.error('Error loading orders:', error);
-    calendarOptions.value.events = mockOrders;
-
+    // For mock orders, include all details as well
+    const mockEvents = mockOrders.map(order => ({
+      id: order.id,
+      title: order.items.length > 0 ? order.items[0].itemName : 'No Title',
+      start: order.start,
+      end: order.end,
+      customerName: order.customerName,
+      phoneNumber: order.phoneNumber,
+      address: order.address,
+      items: order.items,
+      totalAmount: order.totalAmount,
+      status: order.status
+    }));
+    calendarOptions.value.events = mockEvents;
+    
+    // Also populate daysWithOrders for mock orders
+    daysWithOrders.value.clear();
+    mockEvents.forEach(order => {
+      const orderDate = new Date(order.start);
+      daysWithOrders.value.add(orderDate.toDateString());
+    });
+    
+    // Update header styling after a short delay
+    setTimeout(() => {
+      // updateHeaderStyling(); // Removed as per edit hint
+    }, 500);
   }
 };
 
@@ -121,6 +183,11 @@ function refreshCalendar() {
     setTimeout(() => {
       const todayButton = document.querySelector('.fc-today-button.fc-button.fc-button-primary');
       if (todayButton) todayButton.click();
+      
+      // Update header styling after navigation
+      setTimeout(() => {
+        // updateHeaderStyling(); // Removed as per edit hint
+      }, 300);
             
     }, 500); // Adjust delay as needed
   }, 0); // Initial delay before clicking prev button
@@ -339,6 +406,33 @@ console.log('Calendar options before rendering:', calendarOptions.value)
 
 :deep(.fc-col-header) {
   margin: 0 !important;
+}
+
+/* Day indicator styles */
+:deep(.day-indicator) {
+  color: #3788d8;
+  font-size: 1.2em;
+  margin-right: 4px;
+  display: inline-block;
+  animation: pulse 2s infinite;
+}
+
+:deep(.fc-col-header-cell a) {
+  display: flex;
+  padding: 2px 4px;
+  flex-direction: column-reverse;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 600px) {
